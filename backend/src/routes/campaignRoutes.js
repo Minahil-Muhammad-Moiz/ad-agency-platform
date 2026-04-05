@@ -6,46 +6,49 @@ const pool = require('../config/database');
 // Apply authentication to all campaign routes
 router.use(authenticateToken);
 
-// GET /api/campaigns - List all campaigns with filtering, sorting, pagination
-router.get('/', async (req, res, next) => {
+// GET /api/campaigns
+router.get('/', async (req, res) => {
     try {
-        const { 
-            status, 
-            client, 
-            sort = 'created_at', 
-            order = 'DESC',
-            page = 1, 
-            limit = 10 
-        } = req.query;
+        const { status, client, sort = 'created_at', order = 'DESC', page = 1, limit = 10 } = req.query;
         
-        let query = 'SELECT * FROM campaigns WHERE deleted_at IS NULL';
+        let query = `
+            SELECT 
+                c.*,
+                CASE 
+                    WHEN c.impressions > 0 THEN ROUND((c.clicks::DECIMAL / c.impressions) * 100, 2)
+                    ELSE 0
+                END as ctr,
+                CASE 
+                    WHEN c.spend > 0 THEN ROUND(c.conversions::DECIMAL / c.spend, 4)
+                    ELSE 0
+                END as roas
+            FROM campaigns c
+            WHERE c.deleted_at IS NULL
+        `;
+        
         const params = [];
         let paramIndex = 1;
         
-        // Apply filters
         if (status) {
-            query += ` AND status = $${paramIndex}`;
+            query += ` AND c.status = $${paramIndex}`;
             params.push(status);
             paramIndex++;
         }
         
         if (client) {
-            query += ` AND client ILIKE $${paramIndex}`;
+            query += ` AND c.client ILIKE $${paramIndex}`;
             params.push(`%${client}%`);
             paramIndex++;
         }
         
-        // Apply sorting
-        query += ` ORDER BY ${sort} ${order}`;
+        query += ` ORDER BY c.${sort} ${order}`;
         
-        // Apply pagination
         const offset = (page - 1) * limit;
         query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
         params.push(limit, offset);
         
         const result = await pool.query(query, params);
         
-        // Get total count for pagination
         const countResult = await pool.query(
             'SELECT COUNT(*) FROM campaigns WHERE deleted_at IS NULL'
         );
@@ -60,17 +63,29 @@ router.get('/', async (req, res, next) => {
             }
         });
     } catch (error) {
-        next(error);
+        console.error('Error fetching campaigns:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// GET /api/campaigns/:id - Get single campaign
-router.get('/:id', async (req, res, next) => {
+// GET /api/campaigns/:id
+router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         
         const result = await pool.query(
-            'SELECT * FROM campaigns WHERE id = $1 AND deleted_at IS NULL',
+            `SELECT 
+                c.*,
+                CASE 
+                    WHEN c.impressions > 0 THEN ROUND((c.clicks::DECIMAL / c.impressions) * 100, 2)
+                    ELSE 0
+                END as ctr,
+                CASE 
+                    WHEN c.spend > 0 THEN ROUND(c.conversions::DECIMAL / c.spend, 4)
+                    ELSE 0
+                END as roas
+            FROM campaigns c
+            WHERE c.id = $1 AND c.deleted_at IS NULL`,
             [id]
         );
         
@@ -80,20 +95,19 @@ router.get('/:id', async (req, res, next) => {
         
         res.json(result.rows[0]);
     } catch (error) {
-        next(error);
+        console.error('Error fetching campaign:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// POST /api/campaigns - Create new campaign
-router.post('/', async (req, res, next) => {
+// POST /api/campaigns
+router.post('/', async (req, res) => {
     try {
         const { name, client, status, budget, spend, impressions, clicks, conversions } = req.body;
         
-        // Validate required fields
         if (!name || !client || !budget) {
             return res.status(400).json({ 
-                error: 'Missing required fields',
-                required: ['name', 'client', 'budget']
+                error: 'Missing required fields: name, client, budget'
             });
         }
         
@@ -106,65 +120,51 @@ router.post('/', async (req, res, next) => {
         
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        next(error);
+        console.error('Error creating campaign:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// PUT /api/campaigns/:id - Update campaign
-router.put('/:id', async (req, res, next) => {
+// PUT /api/campaigns/:id
+router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { name, client, status, budget, spend, impressions, clicks, conversions } = req.body;
         
-        // Build dynamic update query
-        const setClause = [];
-        const params = [];
-        let paramIndex = 1;
-        
-        for (const [key, value] of Object.entries(updates)) {
-            if (key !== 'id' && key !== 'created_at' && key !== 'deleted_at') {
-                setClause.push(`${key} = $${paramIndex}`);
-                params.push(value);
-                paramIndex++;
-            }
-        }
-        
-        if (setClause.length === 0) {
-            return res.status(400).json({ error: 'No valid fields to update' });
-        }
-        
-        params.push(id);
-        
-        const query = `
-            UPDATE campaigns 
-            SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $${paramIndex} AND deleted_at IS NULL
-            RETURNING *
-        `;
-        
-        const result = await pool.query(query, params);
+        const result = await pool.query(
+            `UPDATE campaigns 
+             SET name = COALESCE($1, name),
+                 client = COALESCE($2, client),
+                 status = COALESCE($3, status),
+                 budget = COALESCE($4, budget),
+                 spend = COALESCE($5, spend),
+                 impressions = COALESCE($6, impressions),
+                 clicks = COALESCE($7, clicks),
+                 conversions = COALESCE($8, conversions),
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $9 AND deleted_at IS NULL
+             RETURNING *`,
+            [name, client, status, budget, spend, impressions, clicks, conversions, id]
+        );
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Campaign not found' });
         }
         
-        // Check for alert rules after update
-        await checkAlertRules(result.rows[0], req.app.get('io'), req.user.id);
-        
         res.json(result.rows[0]);
     } catch (error) {
-        next(error);
+        console.error('Error updating campaign:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// DELETE /api/campaigns/:id - Soft delete campaign
-router.delete('/:id', async (req, res, next) => {
+// DELETE /api/campaigns/:id (soft delete)
+router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         
         const result = await pool.query(
-            `UPDATE campaigns 
-             SET deleted_at = CURRENT_TIMESTAMP 
+            `UPDATE campaigns SET deleted_at = CURRENT_TIMESTAMP 
              WHERE id = $1 AND deleted_at IS NULL
              RETURNING id`,
             [id]
@@ -176,50 +176,9 @@ router.delete('/:id', async (req, res, next) => {
         
         res.json({ message: 'Campaign deleted successfully', id: parseInt(id) });
     } catch (error) {
-        next(error);
+        console.error('Error deleting campaign:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-// Helper function to check alert rules
-async function checkAlertRules(campaign, io, userId) {
-    const alerts = [];
-    
-    // Rule 1: Check if CTR is below 1%
-    const ctr = (campaign.clicks / campaign.impressions) * 100;
-    if (ctr < 1 && campaign.impressions > 0) {
-        alerts.push({
-            campaign_id: campaign.id,
-            alert_type: 'low_ctr',
-            message: `CTR dropped to ${ctr.toFixed(2)}% (below 1% threshold)`,
-            threshold_value: 1,
-            current_value: ctr
-        });
-    }
-    
-    // Rule 2: Check if spend exceeds 90% of budget
-    const spendPercentage = (campaign.spend / campaign.budget) * 100;
-    if (spendPercentage > 90) {
-        alerts.push({
-            campaign_id: campaign.id,
-            alert_type: 'budget_exceeded',
-            message: `Budget usage at ${spendPercentage.toFixed(2)}% (exceeds 90% threshold)`,
-            threshold_value: 90,
-            current_value: spendPercentage
-        });
-    }
-    
-    // Save alerts to database and emit via WebSocket
-    for (const alert of alerts) {
-        const result = await pool.query(
-            `INSERT INTO alerts (campaign_id, alert_type, message, threshold_value, current_value)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING *`,
-            [alert.campaign_id, alert.alert_type, alert.message, alert.threshold_value, alert.current_value]
-        );
-        
-        // Emit to the specific user's room
-        io.to(`user_${userId}`).emit('campaign_alert', result.rows[0]);
-    }
-}
 
 module.exports = router;

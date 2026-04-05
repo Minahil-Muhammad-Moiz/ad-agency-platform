@@ -1,0 +1,81 @@
+{
+    "campaigns": [
+      {
+        "id": 1,
+        "name": "Summer Launch 2024",
+        "client": "Lumiere Skincare",
+        "status": "active",
+        "budget": 50000,
+        "spend": 32450,
+        "impressions": 2400000,
+        "clicks": 48000,
+        "conversions": 1200,
+        "ctr": 2.0,
+        "roas": 0.037
+      },
+      {
+        "id": 2,
+        "name": "Holiday Special",
+        "client": "Nike",
+        "status": "active",
+        "budget": 75000,
+        "spend": 45000,
+        "impressions": 3500000,
+        "clicks": 70000,
+        "conversions": 2100,
+        "ctr": 2.0,
+        "roas": 0.0467
+      },
+      {
+        "id": 3,
+        "name": "Spring Campaign",
+        "client": "Adidas",
+        "status": "paused",
+        "budget": 30000,
+        "spend": 30000,
+        "impressions": 1200000,
+        "clicks": 36000,
+        "conversions": 900,
+        "ctr": 3.0,
+        "roas": 0.03
+      },
+      {
+        "id": 4,
+        "name": "Brand Awareness",
+        "client": "Puma",
+        "status": "active",
+        "budget": 60000,
+        "spend": 20000,
+        "impressions": 1800000,
+        "clicks": 45000,
+        "conversions": 800,
+        "ctr": 2.5,
+        "roas": 0.04
+      },
+      {
+        "id": 5,
+        "name": "Back to School",
+        "client": "Lumiere Skincare",
+        "status": "completed",
+        "budget": 40000,
+        "spend": 15000,
+        "impressions": 900000,
+        "clicks": 18000,
+        "conversions": 400,
+        "ctr": 2.0,
+        "roas": 0.0267
+      }
+    ],
+    "performanceData": [
+      { "date": "2024-01-01", "impressions": 80000, "clicks": 1600, "conversions": 40 },
+      { "date": "2024-01-02", "impressions": 85000, "clicks": 1700, "conversions": 42 },
+      { "date": "2024-01-03", "impressions": 90000, "clicks": 1800, "conversions": 45 },
+      { "date": "2024-01-04", "impressions": 95000, "clicks": 1900, "conversions": 48 },
+      { "date": "2024-01-05", "impressions": 100000, "clicks": 2000, "conversions": 50 },
+      { "date": "2024-01-06", "impressions": 105000, "clicks": 2100, "conversions": 52 },
+      { "date": "2024-01-07", "impressions": 110000, "clicks": 2200, "conversions": 55 },
+      { "date": "2024-01-08", "impressions": 108000, "clicks": 2160, "conversions": 54 },
+      { "date": "2024-01-09", "impressions": 112000, "clicks": 2240, "conversions": 56 },
+      { "date": "2024-01-10", "impressions": 118000, "clicks": 2360, "conversions": 59 }
+    ]
+  }
