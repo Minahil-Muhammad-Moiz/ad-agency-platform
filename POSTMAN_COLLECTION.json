@@ -1,0 +1,367 @@
+{
+    "info": {
+      "name": "Ad Agency Campaign API",
+      "description": "Complete API collection for Campaign Management System",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Authentication",
+        "item": [
+          {
+            "name": "Login",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"test@agency.com\",\n  \"password\": \"password123\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:5000/api/auth/login",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "auth", "login"]
+              }
+            }
+          },
+          {
+            "name": "Setup Test User",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/auth/setup-test-user",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "auth", "setup-test-user"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Campaigns",
+        "item": [
+          {
+            "name": "Get All Campaigns",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/campaigns?page=1&limit=10&status=active",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "campaigns"],
+                "query": [
+                  {
+                    "key": "page",
+                    "value": "1"
+                  },
+                  {
+                    "key": "limit",
+                    "value": "10"
+                  },
+                  {
+                    "key": "status",
+                    "value": "active"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get Campaign by ID",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/campaigns/1",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "campaigns", "1"]
+              }
+            }
+          },
+          {
+            "name": "Create Campaign",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"Summer Sale 2024\",\n  \"client\": \"Nike\",\n  \"status\": \"active\",\n  \"budget\": 75000,\n  \"spend\": 25000,\n  \"impressions\": 1200000,\n  \"clicks\": 36000,\n  \"conversions\": 1080\n}"
+              },
+              "url": {
+                "raw": "http://localhost:5000/api/campaigns",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "campaigns"]
+              }
+            }
+          },
+          {
+            "name": "Update Campaign",
+            "request": {
+              "method": "PUT",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"spend\": 68000,\n  \"clicks\": 52000,\n  \"impressions\": 2100000\n}"
+              },
+              "url": {
+                "raw": "http://localhost:5000/api/campaigns/1",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "campaigns", "1"]
+              }
+            }
+          },
+          {
+            "name": "Delete Campaign (Soft Delete)",
+            "request": {
+              "method": "DELETE",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/campaigns/5",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "campaigns", "5"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Notifications",
+        "item": [
+          {
+            "name": "Get Unread Notifications",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/notifications/unread",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "notifications", "unread"]
+              }
+            }
+          },
+          {
+            "name": "Get Notification History",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/notifications/history?limit=20",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "notifications", "history"],
+                "query": [
+                  {
+                    "key": "limit",
+                    "value": "20"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Mark Notification as Read",
+            "request": {
+              "method": "PUT",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/notifications/1/read",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "notifications", "1", "read"]
+              }
+            }
+          },
+          {
+            "name": "Mark All as Read",
+            "request": {
+              "method": "PUT",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token}}"
+                }
+              ],
+              "url": {
+                "raw": "http://localhost:5000/api/notifications/read-all",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["api", "notifications", "read-all"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "AI Service",
+        "item": [
+          {
+            "name": "Health Check",
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "http://localhost:3001/health",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "3001",
+                "path": ["health"]
+              }
+            }
+          },
+          {
+            "name": "Generate Ad Copy",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"product\": \"Organic Skincare\",\n  \"tone\": \"Luxury and Natural\",\n  \"platform\": \"Instagram\",\n  \"word_limit\": 100\n}"
+              },
+              "url": {
+                "raw": "http://localhost:3001/generate/copy",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "3001",
+                "path": ["generate", "copy"]
+              }
+            }
+          },
+          {
+            "name": "Generate Social Captions",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"platform\": \"Instagram\",\n  \"campaign_goal\": \"Increase Brand Awareness\",\n  \"brand_voice\": \"Friendly and Authentic\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:3001/generate/social",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "3001",
+                "path": ["generate", "social"]
+              }
+            }
+          },
+          {
+            "name": "Generate Hashtags",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"content\": \"Sustainable Fashion Launch\",\n  \"industry\": \"Fashion Retail\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:3001/generate/hashtags",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "3001",
+                "path": ["generate", "hashtags"]
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "key": "token",
+        "value": "",
+        "type": "string"
+      }
+    ]
+  }
