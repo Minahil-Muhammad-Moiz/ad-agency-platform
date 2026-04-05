@@ -3,10 +3,17 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const pool = require('../config/database');
 
+let alertService;
+
+// Function to set alert service
+router.setAlertService = (service) => {
+    alertService = service;
+};
+
 // Apply authentication to all campaign routes
 router.use(authenticateToken);
 
-// GET /api/campaigns
+// GET /api/campaigns - List all campaigns with filter/sort/pagination
 router.get('/', async (req, res) => {
     try {
         const { status, client, sort = 'created_at', order = 'DESC', page = 1, limit = 10 } = req.query;
@@ -41,7 +48,12 @@ router.get('/', async (req, res) => {
             paramIndex++;
         }
         
-        query += ` ORDER BY c.${sort} ${order}`;
+        // Validate sort field to prevent SQL injection
+        const allowedSortFields = ['name', 'client', 'status', 'budget', 'spend', 'impressions', 'clicks', 'conversions', 'created_at'];
+        const validSort = allowedSortFields.includes(sort) ? sort : 'created_at';
+        const validOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        
+        query += ` ORDER BY c.${validSort} ${validOrder}`;
         
         const offset = (page - 1) * limit;
         query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -54,6 +66,7 @@ router.get('/', async (req, res) => {
         );
         
         res.json({
+            success: true,
             data: result.rows,
             pagination: {
                 page: parseInt(page),
@@ -68,7 +81,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /api/campaigns/:id
+// GET /api/campaigns/:id - Get single campaign
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -93,22 +106,31 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Campaign not found' });
         }
         
-        res.json(result.rows[0]);
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
     } catch (error) {
         console.error('Error fetching campaign:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// POST /api/campaigns
+// POST /api/campaigns - Create new campaign
 router.post('/', async (req, res) => {
     try {
         const { name, client, status, budget, spend, impressions, clicks, conversions } = req.body;
         
+        // Input validation
         if (!name || !client || !budget) {
             return res.status(400).json({ 
-                error: 'Missing required fields: name, client, budget'
+                error: 'Missing required fields',
+                required: ['name', 'client', 'budget']
             });
+        }
+        
+        if (budget <= 0) {
+            return res.status(400).json({ error: 'Budget must be greater than 0' });
         }
         
         const result = await pool.query(
@@ -118,47 +140,105 @@ router.post('/', async (req, res) => {
             [name, client, status || 'active', budget, spend || 0, impressions || 0, clicks || 0, conversions || 0, req.user.id]
         );
         
-        res.status(201).json(result.rows[0]);
+        res.status(201).json({
+            success: true,
+            data: result.rows[0],
+            message: 'Campaign created successfully'
+        });
     } catch (error) {
         console.error('Error creating campaign:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// PUT /api/campaigns/:id
+// PUT /api/campaigns/:id - Update campaign with alert triggering
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { name, client, status, budget, spend, impressions, clicks, conversions } = req.body;
         
-        const result = await pool.query(
-            `UPDATE campaigns 
-             SET name = COALESCE($1, name),
-                 client = COALESCE($2, client),
-                 status = COALESCE($3, status),
-                 budget = COALESCE($4, budget),
-                 spend = COALESCE($5, spend),
-                 impressions = COALESCE($6, impressions),
-                 clicks = COALESCE($7, clicks),
-                 conversions = COALESCE($8, conversions),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $9 AND deleted_at IS NULL
-             RETURNING *`,
-            [name, client, status, budget, spend, impressions, clicks, conversions, id]
+        // First, get the current campaign data
+        const currentCampaign = await pool.query(
+            'SELECT * FROM campaigns WHERE id = $1 AND deleted_at IS NULL',
+            [id]
         );
         
-        if (result.rows.length === 0) {
+        if (currentCampaign.rows.length === 0) {
             return res.status(404).json({ error: 'Campaign not found' });
         }
         
-        res.json(result.rows[0]);
+        // Build dynamic update query
+        const updates = [];
+        const values = [];
+        let valueIndex = 1;
+        
+        if (name !== undefined) {
+            updates.push(`name = $${valueIndex++}`);
+            values.push(name);
+        }
+        if (client !== undefined) {
+            updates.push(`client = $${valueIndex++}`);
+            values.push(client);
+        }
+        if (status !== undefined) {
+            updates.push(`status = $${valueIndex++}`);
+            values.push(status);
+        }
+        if (budget !== undefined) {
+            updates.push(`budget = $${valueIndex++}`);
+            values.push(budget);
+        }
+        if (spend !== undefined) {
+            updates.push(`spend = $${valueIndex++}`);
+            values.push(spend);
+        }
+        if (impressions !== undefined) {
+            updates.push(`impressions = $${valueIndex++}`);
+            values.push(impressions);
+        }
+        if (clicks !== undefined) {
+            updates.push(`clicks = $${valueIndex++}`);
+            values.push(clicks);
+        }
+        if (conversions !== undefined) {
+            updates.push(`conversions = $${valueIndex++}`);
+            values.push(conversions);
+        }
+        
+        updates.push(`updated_at = CURRENT_TIMESTAMP`);
+        
+        if (updates.length === 1) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+        
+        values.push(id);
+        
+        const query = `
+            UPDATE campaigns 
+            SET ${updates.join(', ')}
+            WHERE id = $${valueIndex} AND deleted_at IS NULL
+            RETURNING *
+        `;
+        
+        const result = await pool.query(query, values);
+        
+        // Trigger alert rules after successful update
+        if (alertService && result.rows[0]) {
+            await alertService.checkAlertRules(result.rows[0], req.user.id);
+        }
+        
+        res.json({
+            success: true,
+            data: result.rows[0],
+            message: 'Campaign updated successfully'
+        });
     } catch (error) {
         console.error('Error updating campaign:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// DELETE /api/campaigns/:id (soft delete)
+// DELETE /api/campaigns/:id - Soft delete campaign
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -174,7 +254,11 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Campaign not found' });
         }
         
-        res.json({ message: 'Campaign deleted successfully', id: parseInt(id) });
+        res.json({ 
+            success: true, 
+            message: 'Campaign deleted successfully', 
+            id: parseInt(id) 
+        });
     } catch (error) {
         console.error('Error deleting campaign:', error);
         res.status(500).json({ error: 'Internal server error' });

@@ -8,6 +8,7 @@ import CampaignTable from './CampaignTable';
 import { Sun, Moon, LogOut, Bell, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
+import NotificationCenter from '../Notifications/NotificationCenter';
 
 const Dashboard = () => {
   const { user, logout, isAuthenticated, login } = useAuth();
@@ -47,6 +48,7 @@ const Dashboard = () => {
     { date: 'Week 4', impressions: 950000, clicks: 19000 },
   ];
 
+  // const user = useAuth().user;
   useEffect(() => {
     if (isAuthenticated) {
       fetchCampaigns();
@@ -161,7 +163,7 @@ const Dashboard = () => {
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 relative">
-                <Bell size={20} />
+              <NotificationCenter userId={user?.id} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               <button
