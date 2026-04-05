@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  ai-service:
+    build: .
+    container_name: ad-agency-ai-service
+    ports:
+      - "3001:3001"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - NODE_ENV=production
+    restart: unless-stopped
